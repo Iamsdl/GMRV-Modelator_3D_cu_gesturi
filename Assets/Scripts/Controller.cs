@@ -90,9 +90,10 @@ public class Controller : MonoBehaviour
 
         AllObjects = new List<MyObject>();
         SelectedObjects = new List<MyObject>();
-        SelectedVertices = new List<MyObject>();
-        ActiveSelectedList = SelectedObjects;
         AllVertices = new List<MyObject>();
+        SelectedVertices = new List<MyObject>();
+
+        ActiveSelectedList = SelectedObjects;
 
         SelectingState = SelectingState.None;
         TransformingState = TransformingState.None;
@@ -175,7 +176,7 @@ public class Controller : MonoBehaviour
 
 
 
-    public void ReleaseObjects()
+    public void DisableTransform()
     {
         switch (TransformingState)
         {
@@ -194,39 +195,69 @@ public class Controller : MonoBehaviour
         transformAuxObject2.transform.parent = null;
     }
 
-    public void GrabObjects()
+
+
+    public void EnableTransform()
     {
-        transformAuxObject2.transform.position = transformAuxObject1.transform.position;
         switch (TransformingState)
         {
             case TransformingState.Translating:
-                positionConstraint.constraintActive = true;
-                transformAuxObject2.transform.parent = transformTarget.transform;
+                EnableTranslate();
                 break;
             case TransformingState.Rotating:
-                transformAuxObject2.transform.LookAt(transformTarget.transform);
-                transformAuxObject1.transform.DetachChildren();
-                transformAuxObject1.transform.LookAt(transformTarget.transform);
-                foreach (var item in ActiveSelectedList)
-                {
-                    item.transform.parent = transformAuxObject1.transform;
-                }
-                rotationConstraint.constraintActive = true;
+                EnableRotate();
                 break;
             case TransformingState.Scaling:
-                transformAuxObject2.transform.localScale = transformAuxObject1.transform.localScale;
-
-                scaleConstraint.constraintActive = true;
-
-                initialScale = transformAuxObject2.transform.localScale.x;
-                initialDistance = Vector3.Distance(transformAuxObject2.transform.position, transformTarget.transform.position);
+                EnableScale();
                 break;
             default:
                 break;
         }
     }
 
-    public void SwitchTransformType()
+    private void EnableScale()
+    {
+        transformAuxObject2.transform.position = transformAuxObject1.transform.position;
+        transformAuxObject2.transform.localScale = transformAuxObject1.transform.localScale;
+        scaleConstraint.constraintActive = true;
+
+        initialScale = transformAuxObject2.transform.localScale.x;
+        initialDistance = Vector3.Distance(transformAuxObject2.transform.position, transformTarget.transform.position);
+    }
+
+    private void EnableRotate()
+    {
+        transformAuxObject2.transform.position = transformAuxObject1.transform.position;
+        transformAuxObject2.transform.LookAt(transformTarget.transform);
+        transformAuxObject1.transform.DetachChildren();
+        transformAuxObject1.transform.LookAt(transformTarget.transform);
+        foreach (var item in ActiveSelectedList)
+        {
+            item.transform.parent = transformAuxObject1.transform;
+        }
+        rotationConstraint.constraintActive = true;
+    }
+
+    private void EnableTranslate()
+    {
+        transformAuxObject2.transform.position = transformAuxObject1.transform.position;
+        positionConstraint.constraintActive = true;
+        transformAuxObject2.transform.parent = transformTarget.transform;
+    }
+
+
+    public void GrabObjects(bool all)
+    {
+        if (all)
+        {
+            GrabObjects(AllObjects);
+        }
+        else
+        {
+            GrabObjects(SelectedObjects);
+        }
+    }
+    private void GrabObjects(List<MyObject> objectList)
     {
         if (ActiveSelectedList.Count != 0)
         {
@@ -237,10 +268,6 @@ public class Controller : MonoBehaviour
                 sum += item.transform.position;
             }
             sum /= ActiveSelectedList.Count;
-            //if (EditingState == EditingState.Vertices)
-            //{
-            //    sum = LastSelectedObject.transform.TransformPoint(sum);
-            //}
 
             transformAuxObject1.transform.position = sum;
 
