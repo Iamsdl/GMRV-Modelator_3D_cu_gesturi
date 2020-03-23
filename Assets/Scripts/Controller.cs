@@ -10,6 +10,10 @@ public class Controller : MonoBehaviour
 {
     private GameObject mainCamera;
 
+    private ExtendedFingerDetector detectorGrabRight;
+    private ExtendedFingerDetector detectorGrabLeft;
+    private ExtendedFingerDetector detectorPinchLeft;
+    private ExtendedFingerDetector detectorPinchRight;
 
     #region Lists
     [Header("Lists")]
@@ -36,7 +40,7 @@ public class Controller : MonoBehaviour
         }
     }
     #endregion
-
+    
     #region Select
     [Header("Select")]
     public HoverItemDataCheckbox deselectingCheckbox;
@@ -63,7 +67,8 @@ public class Controller : MonoBehaviour
     private RotationConstraint rotationConstraint;
     private ScaleConstraint scaleConstraint;
     public GameObject transformAuxObject2;
-    public GameObject transformTarget;
+    public GameObject leftPalm;
+    public GameObject rightPalm;
 
     private float initialScale;
     private float initialDistance;
@@ -87,6 +92,7 @@ public class Controller : MonoBehaviour
         scaleConstraint = transformAuxObject1.GetComponent<ScaleConstraint>();
 
         mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
+        InitialiseDetectors();
 
         AllObjects = new List<MyObject>();
         SelectedObjects = new List<MyObject>();
@@ -96,7 +102,7 @@ public class Controller : MonoBehaviour
         ActiveSelectedList = SelectedObjects;
 
         SelectingState = SelectingState.None;
-        TransformingState = TransformingState.None;
+        TransformingState = TransformingState.Translating;
         EditingState = EditingState.None;
 
         ObjectColors = new Dictionary<ObjectStates, Color>
@@ -108,19 +114,36 @@ public class Controller : MonoBehaviour
         };
     }
 
+    private void InitialiseDetectors()
+    {
+        detectorGrabLeft = this.GetComponents<ExtendedFingerDetector>()[0];
+        detectorGrabLeft.OnActivate.AddListener(() => { TransformingState = TransformingState.RotoScale; });
+        detectorGrabLeft.OnDeactivate.AddListener(() => { TransformingState = TransformingState.Translating; });
+
+        detectorGrabRight = this.GetComponents<ExtendedFingerDetector>()[1];
+        detectorGrabRight.OnActivate.AddListener(() => { EnableTransform(AllObjects); });
+        detectorGrabRight.OnDeactivate.AddListener(() => { DisableTransform(); });
+
+        detectorPinchLeft = this.GetComponents<ExtendedFingerDetector>()[2];
+        detectorPinchLeft.OnActivate.AddListener(() => { TransformingState = TransformingState.RotoScale; });
+        detectorPinchLeft.OnDeactivate.AddListener(() => { TransformingState = TransformingState.Translating; });
+
+        detectorPinchRight = this.GetComponents<ExtendedFingerDetector>()[3];
+        detectorPinchRight.OnActivate.AddListener(() => { EnableTransform(SelectedObjects); });
+        detectorPinchRight.OnDeactivate.AddListener(() => { DisableTransform(); });
+    }
+
     // Update is called once per frame
     void Update()
     {
-        if (this.TransformingState == TransformingState.Rotating)
+        if (this.TransformingState == TransformingState.Translating)
         {
-            transformAuxObject2.transform.LookAt(transformTarget.transform);
+            Translate();
         }
-        if (TransformingState == TransformingState.Scaling)
+        if (this.TransformingState == TransformingState.RotoScale)
         {
-            float distance = Vector3.Distance(this.transformAuxObject2.transform.position, transformTarget.transform.position);
-            float newScale = initialScale + distance - initialDistance;
-
-            transformAuxObject2.transform.localScale = new Vector3(newScale, newScale, newScale);
+            Rotate();
+            Scale();
         }
         if (EditingState == EditingState.Vertices)
         {
@@ -149,6 +172,21 @@ public class Controller : MonoBehaviour
         }
     }
 
+    private void Translate()
+    {
+        //no need to do anything, unity parenting/constraints take care of things.
+    }
+    private void Rotate()
+    {
+        transformAuxObject2.transform.LookAt(rightPalm.transform);
+    }
+    private void Scale()
+    {
+        float distance = Vector3.Distance(this.transformAuxObject2.transform.position, leftPalm.transform.position);
+        float newScale = initialScale + distance - initialDistance;
+
+        transformAuxObject2.transform.localScale = new Vector3(newScale, newScale, newScale);
+    }
 
 
     public void UpdateConstraints()
@@ -175,6 +213,44 @@ public class Controller : MonoBehaviour
     }
 
 
+    public void EnableTransform(List<MyObject> objects)
+    {
+        ReleaseObjects();
+
+        switch (TransformingState)
+        {
+            case TransformingState.Translating:
+                PrepareTranslate();
+                break;
+            case TransformingState.RotoScale:
+                PrepareRotate();
+                PrepareScale();
+                break;
+            default:
+                break;
+        }
+
+        GrabObjects(objects);
+    }
+    private void PrepareTranslate()
+    {
+        positionConstraint.constraintActive = true;
+        transformAuxObject2.transform.parent = rightPalm.transform;
+    }
+    private void PrepareRotate()
+    {
+        transformAuxObject2.transform.LookAt(rightPalm.transform);
+        transformAuxObject1.transform.LookAt(rightPalm.transform);
+        rotationConstraint.constraintActive = true;
+    }
+    private void PrepareScale()
+    {
+        transformAuxObject2.transform.localScale = transformAuxObject1.transform.localScale;
+        scaleConstraint.constraintActive = true;
+
+        initialScale = transformAuxObject2.transform.localScale.x;
+        initialDistance = Vector3.Distance(transformAuxObject2.transform.position, leftPalm.transform.position);
+    }
 
     public void DisableTransform()
     {
@@ -183,10 +259,8 @@ public class Controller : MonoBehaviour
             case TransformingState.Translating:
                 positionConstraint.constraintActive = false;
                 break;
-            case TransformingState.Rotating:
+            case TransformingState.RotoScale:
                 rotationConstraint.constraintActive = false;
-                break;
-            case TransformingState.Scaling:
                 scaleConstraint.constraintActive = false;
                 break;
             default:
@@ -195,139 +269,70 @@ public class Controller : MonoBehaviour
         transformAuxObject2.transform.parent = null;
     }
 
-
-
-    public void EnableTransform()
+    private void GrabObjects(List<MyObject> objects)
     {
-        switch (TransformingState)
+        if (objects.Count != 0)
         {
-            case TransformingState.Translating:
-                EnableTranslate();
-                break;
-            case TransformingState.Rotating:
-                EnableRotate();
-                break;
-            case TransformingState.Scaling:
-                EnableScale();
-                break;
-            default:
-                break;
-        }
-    }
+            transformAuxObject1.transform.position = GetMedianPoint(objects);
+            transformAuxObject2.transform.position = transformAuxObject1.transform.position;
 
-    private void EnableScale()
-    {
-        transformAuxObject2.transform.position = transformAuxObject1.transform.position;
-        transformAuxObject2.transform.localScale = transformAuxObject1.transform.localScale;
-        scaleConstraint.constraintActive = true;
-
-        initialScale = transformAuxObject2.transform.localScale.x;
-        initialDistance = Vector3.Distance(transformAuxObject2.transform.position, transformTarget.transform.position);
-    }
-
-    private void EnableRotate()
-    {
-        transformAuxObject2.transform.position = transformAuxObject1.transform.position;
-        transformAuxObject2.transform.LookAt(transformTarget.transform);
-        transformAuxObject1.transform.DetachChildren();
-        transformAuxObject1.transform.LookAt(transformTarget.transform);
-        foreach (var item in ActiveSelectedList)
-        {
-            item.transform.parent = transformAuxObject1.transform;
-        }
-        rotationConstraint.constraintActive = true;
-    }
-
-    private void EnableTranslate()
-    {
-        transformAuxObject2.transform.position = transformAuxObject1.transform.position;
-        positionConstraint.constraintActive = true;
-        transformAuxObject2.transform.parent = transformTarget.transform;
-    }
-
-
-    public void GrabObjects(bool all)
-    {
-        if (all)
-        {
-            GrabObjects(AllObjects);
-        }
-        else
-        {
-            GrabObjects(SelectedObjects);
-        }
-    }
-    private void GrabObjects(List<MyObject> objectList)
-    {
-        if (ActiveSelectedList.Count != 0)
-        {
-            transformAuxObject1.transform.DetachChildren();
-            Vector3 sum = Vector3.zero;
-            foreach (MyObject item in ActiveSelectedList)
-            {
-                sum += item.transform.position;
-            }
-            sum /= ActiveSelectedList.Count;
-
-            transformAuxObject1.transform.position = sum;
-
-            foreach (var item in ActiveSelectedList)
+            foreach (var item in objects)
             {
                 item.transform.parent = transformAuxObject1.transform;
             }
         }
-
-        if (translatingRadio.Value == true)
-        {
-            this.TransformingState = TransformingState.Translating;
-            return;
-        }
-        if (RotatingRadio.Value == true)
-        {
-            this.TransformingState = TransformingState.Rotating;
-            return;
-        }
-        if (ScalingRadio.Value == true)
-        {
-            this.TransformingState = TransformingState.Scaling;
-            return;
-        }
     }
-
-    public void DisableTransforming(Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType rowEntryType)
+    private static Vector3 GetMedianPoint(List<MyObject> objectList)
     {
-        if (rowEntryType == Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType.FromInside)
+        Vector3 sum = Vector3.zero;
+        foreach (MyObject item in objectList)
         {
-            if (this.TransformingState != TransformingState.None)
-            {
-                this.TransformingState = TransformingState.None;
-                transformAuxObject1.transform.DetachChildren();
-                return;
-            }
-            DisableEditing(rowEntryType);
+            sum += item.transform.position;
         }
-
+        sum /= objectList.Count;
+        return sum;
     }
 
-    public void ToggleSelection()
+    private void ReleaseObjects()
     {
-        if (deselectingCheckbox.Value)
-        {
-            this.SelectingState = SelectingState.Deselecting;
-        }
-        else
-        {
-            this.SelectingState = SelectingState.Selecting;
-        }
+        transformAuxObject1.transform.DetachChildren();
     }
 
-    public void DisableSelection(Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType rowEntryType)
-    {
-        if (rowEntryType == Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType.FromInside)
-        {
-            this.SelectingState = SelectingState.None;
-        }
-    }
+
+    //public void DisableTransforming(Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType rowEntryType)
+    //{
+    //    if (rowEntryType == Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType.FromInside)
+    //    {
+    //        if (this.TransformingState != TransformingState.None)
+    //        {
+    //            this.TransformingState = TransformingState.None;
+    //            transformAuxObject1.transform.DetachChildren();
+    //            return;
+    //        }
+    //        DisableEditing(rowEntryType);
+    //    }
+
+    //}
+
+    //public void ToggleSelection()
+    //{
+    //    if (deselectingCheckbox.Value)
+    //    {
+    //        this.SelectingState = SelectingState.Deselecting;
+    //    }
+    //    else
+    //    {
+    //        this.SelectingState = SelectingState.Selecting;
+    //    }
+    //}
+
+    //public void DisableSelection(Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType rowEntryType)
+    //{
+    //    if (rowEntryType == Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType.FromInside)
+    //    {
+    //        this.SelectingState = SelectingState.None;
+    //    }
+    //}
 
     public void EnableEditing()
     {
@@ -372,18 +377,14 @@ public class Controller : MonoBehaviour
                 return;
             }
         }
-        switch (SelectingState)
+
+        if(myObject.IsSelected)
         {
-            case SelectingState.None:
-                break;
-            case SelectingState.Selecting:
-                Select(myObject);
-                break;
-            case SelectingState.Deselecting:
-                Deselect(myObject);
-                break;
-            default:
-                break;
+            Deselect(myObject);
+        }
+        else
+        {
+            Select(myObject);
         }
     }
     private void Select(MyObject myObject)
@@ -395,6 +396,7 @@ public class Controller : MonoBehaviour
                 LastSelectedObject.Color = ObjectColors[ObjectStates.Selected];
             }
             ActiveSelectedList.Add(myObject);
+            myObject.IsSelected = true;
             myObject.Color = ObjectColors[ObjectStates.Active];
         }
     }
@@ -403,6 +405,7 @@ public class Controller : MonoBehaviour
         if (ActiveSelectedList.Contains(myObject))
         {
             ActiveSelectedList.Remove(myObject);
+            myObject.IsSelected = false;
             myObject.Color = ObjectColors[ObjectStates.Deselected];
             if (LastSelectedObject != null)
             {
@@ -431,7 +434,7 @@ public class Controller : MonoBehaviour
         obj.gameObject.SetActive(true);
 
         obj.Initialise();
-        obj.fingerDirectionDetector.OnActivate.AddListener(delegate { SelectOrDeselect(obj); });
+        obj.proximityDetector.OnActivate.AddListener(delegate { SelectOrDeselect(obj); });
         obj.Color = ObjectColors[ObjectStates.Deselected];
         AllObjects.Add(obj);
     }
@@ -451,7 +454,7 @@ public class Controller : MonoBehaviour
         MyObject obj = Instantiate(ObjectsToInstantiate[Convert.ToInt32(ObjectType.Vertex)], position, Quaternion.identity).GetComponent<MyObject>();
         obj.gameObject.SetActive(true);
         obj.Initialise();
-        obj.fingerDirectionDetector.OnActivate.AddListener(delegate { SelectOrDeselect(obj); });
+        obj.proximityDetector.OnActivate.AddListener(delegate { SelectOrDeselect(obj); });
         obj.Color = ObjectColors[ObjectStates.Deselected];
         return obj;
     }
@@ -481,8 +484,7 @@ public enum TransformingState
 {
     None,
     Translating,
-    Rotating,
-    Scaling
+    RotoScale
 }
 
 public enum EditingState

@@ -53,6 +53,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+     <Compile Include="Assets\HDRP test\Texture3DPreviewInInspector.cs" />
+     <Compile Include="Assets\HDRP test\TextureGenerator.cs" />
+     <Compile Include="Assets\HDRP test\VerticesTest.cs" />
      <Compile Include="Assets\Hover\Core\Scripts\Cursors\CursorCapabilityType.cs" />
      <Compile Include="Assets\Hover\Core\Scripts\Cursors\CursorType.cs" />
      <Compile Include="Assets\Hover\Core\Scripts\Cursors\CursorUtil.cs" />
@@ -467,8 +470,7 @@
      <Compile Include="Assets\Scripts\Controller.cs" />
      <Compile Include="Assets\Scripts\MyObject.cs" />
      <Compile Include="Assets\Scripts\State.cs" />
-     <Compile Include="Assets\test\TextureGenerator.cs" />
-     <Compile Include="Assets\test\VerticesTest.cs" />
+     <Compile Include="Assets\Texture3DPreview\Attributes\Texture3DPreviewAttribute.cs" />
      <None Include="Assets\LeapMotion\Core\Resources\LeapCG.cginc" />
      <None Include="Assets\Hover\Core\Resources\Shaders\VertColorTexTwoSidedAlpha.shader" />
      <None Include="Assets\LeapMotion\Core\README_BEFORE_UPDATING.txt" />
@@ -501,6 +503,30 @@
  </Reference>
  <Reference Include="Unity.XR.WindowsMR">
  <HintPath>F:/My Stuff/SDL/Facultate/Master/Cercetare/Modelator 3D cu gesturi v2/Modelator-3D-cu-gesturi/Library/ScriptAssemblies/Unity.XR.WindowsMR.dll</HintPath>
+ </Reference>
+ <Reference Include="Unity.RenderPipelines.Core.Editor">
+ <HintPath>F:/My Stuff/SDL/Facultate/Master/Cercetare/Modelator 3D cu gesturi v2/Modelator-3D-cu-gesturi/Library/ScriptAssemblies/Unity.RenderPipelines.Core.Editor.dll</HintPath>
+ </Reference>
+ <Reference Include="Unity.RenderPipelines.Core.Runtime">
+ <HintPath>F:/My Stuff/SDL/Facultate/Master/Cercetare/Modelator 3D cu gesturi v2/Modelator-3D-cu-gesturi/Library/ScriptAssemblies/Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+ </Reference>
+ <Reference Include="Unity.RenderPipelines.HighDefinition.Runtime">
+ <HintPath>F:/My Stuff/SDL/Facultate/Master/Cercetare/Modelator 3D cu gesturi v2/Modelator-3D-cu-gesturi/Library/ScriptAssemblies/Unity.RenderPipelines.HighDefinition.Runtime.dll</HintPath>
+ </Reference>
+ <Reference Include="Unity.Postprocessing.Editor">
+ <HintPath>F:/My Stuff/SDL/Facultate/Master/Cercetare/Modelator 3D cu gesturi v2/Modelator-3D-cu-gesturi/Library/ScriptAssemblies/Unity.Postprocessing.Editor.dll</HintPath>
+ </Reference>
+ <Reference Include="Unity.Postprocessing.Runtime">
+ <HintPath>F:/My Stuff/SDL/Facultate/Master/Cercetare/Modelator 3D cu gesturi v2/Modelator-3D-cu-gesturi/Library/ScriptAssemblies/Unity.Postprocessing.Runtime.dll</HintPath>
+ </Reference>
+ <Reference Include="Unity.ShaderGraph.Editor">
+ <HintPath>F:/My Stuff/SDL/Facultate/Master/Cercetare/Modelator 3D cu gesturi v2/Modelator-3D-cu-gesturi/Library/ScriptAssemblies/Unity.ShaderGraph.Editor.dll</HintPath>
+ </Reference>
+ <Reference Include="Unity.RenderPipelines.HighDefinition.Editor">
+ <HintPath>F:/My Stuff/SDL/Facultate/Master/Cercetare/Modelator 3D cu gesturi v2/Modelator-3D-cu-gesturi/Library/ScriptAssemblies/Unity.RenderPipelines.HighDefinition.Editor.dll</HintPath>
+ </Reference>
+ <Reference Include="Unity.RenderPipelines.Core.ShaderLibrary">
+ <HintPath>F:/My Stuff/SDL/Facultate/Master/Cercetare/Modelator 3D cu gesturi v2/Modelator-3D-cu-gesturi/Library/ScriptAssemblies/Unity.RenderPipelines.Core.ShaderLibrary.dll</HintPath>
  </Reference>
  <Reference Include="UnityEngine.AIModule">
  <HintPath>D:/2018.4.10f1/Editor/Data/PlaybackEngines/MetroSupport/Tools/UnityEngine.AIModule.dll</HintPath>

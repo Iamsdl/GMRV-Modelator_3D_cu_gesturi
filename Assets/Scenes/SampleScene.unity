@@ -23,10 +23,10 @@ RenderSettings:
   m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
-  m_AmbientIntensity: 1
+  m_AmbientIntensity: 0
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 0}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -35,10 +35,10 @@ RenderSettings:
   m_DefaultReflectionMode: 0
   m_DefaultReflectionResolution: 128
   m_ReflectionBounces: 1
-  m_ReflectionIntensity: 1
+  m_ReflectionIntensity: 0
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.37311953, g: 0.38074014, b: 0.3587274, a: 1}
+  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 0}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -4776,6 +4776,8 @@ GameObject:
   - component: {fileID: 301782686}
   - component: {fileID: 301782685}
   - component: {fileID: 301782687}
+  - component: {fileID: 301782690}
+  - component: {fileID: 301782689}
   - component: {fileID: 301782688}
   m_Layer: 0
   m_Name: Controller
@@ -4809,7 +4811,8 @@ MonoBehaviour:
   zAxis: {fileID: 427427332}
   transformAuxObject1: {fileID: 607273429}
   transformAuxObject2: {fileID: 2030812784}
-  transformTarget: {fileID: 868888807}
+  leftPalm: {fileID: 1890843247}
+  rightPalm: {fileID: 868888807}
 --- !u!4 &301782686
 Transform:
   m_ObjectHideFlags: 0
@@ -4843,7 +4846,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   Period: 0.1
-  HandModel: {fileID: 425564312}
+  HandModel: {fileID: 17366600}
   Thumb: 1
   Index: 1
   Middle: 1
@@ -4851,7 +4854,7 @@ MonoBehaviour:
   Pinky: 1
   MinimumExtendedCount: 0
   MaximumExtendedCount: 0
-  ShowGizmos: 1
+  ShowGizmos: 0
 --- !u!114 &301782688
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4861,42 +4864,81 @@ MonoBehaviour:
   m_GameObject: {fileID: 301782684}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e309ac4138f124f9f8ad312a14a8e9ff, type: 3}
+  m_Script: {fileID: 11500000, guid: e98e641d160144e87a3d33fcdb893a02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   OnActivate:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 301782685}
-        m_MethodName: GrabObjects
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   OnDeactivate:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 301782685}
-        m_MethodName: ReleaseObjects
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  _handModel: {fileID: 425564312}
-  ControlsTransform: 1
-  ShowGizmos: 1
-  ActivateDistance: 0.03
-  DeactivateDistance: 0.04
+      m_Calls: []
+  Period: 0.1
+  HandModel: {fileID: 425564312}
+  Thumb: 1
+  Index: 1
+  Middle: 0
+  Ring: 0
+  Pinky: 0
+  MinimumExtendedCount: 3
+  MaximumExtendedCount: 3
+  ShowGizmos: 0
+--- !u!114 &301782689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301782684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e98e641d160144e87a3d33fcdb893a02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  OnActivate:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDeactivate:
+    m_PersistentCalls:
+      m_Calls: []
+  Period: 0.1
+  HandModel: {fileID: 17366600}
+  Thumb: 1
+  Index: 1
+  Middle: 0
+  Ring: 0
+  Pinky: 0
+  MinimumExtendedCount: 3
+  MaximumExtendedCount: 3
+  ShowGizmos: 0
+--- !u!114 &301782690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301782684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e98e641d160144e87a3d33fcdb893a02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  OnActivate:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDeactivate:
+    m_PersistentCalls:
+      m_Calls: []
+  Period: 0.1
+  HandModel: {fileID: 425564312}
+  Thumb: 1
+  Index: 1
+  Middle: 1
+  Ring: 1
+  Pinky: 1
+  MinimumExtendedCount: 0
+  MaximumExtendedCount: 0
+  ShowGizmos: 0
 --- !u!4 &305793704 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 480344, guid: 737b901aecdb514459be83a6eb717f65,
@@ -11517,7 +11559,7 @@ Camera:
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
-  m_AllowMSAA: 1
+  m_AllowMSAA: 0
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
@@ -12137,7 +12179,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 465abd67113645a4d9fd3347d0d46b1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fingerDirectionDetector: {fileID: 796410380}
+  IsSelected: 0
+  proximityDetector: {fileID: 0}
 --- !u!1 &800234386
 GameObject:
   m_ObjectHideFlags: 0
@@ -13876,7 +13919,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 465abd67113645a4d9fd3347d0d46b1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fingerDirectionDetector: {fileID: 930111558}
+  IsSelected: 0
+  proximityDetector: {fileID: 0}
 --- !u!114 &930111558
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19818,8 +19862,8 @@ GameObject:
   - component: {fileID: 1452484389}
   - component: {fileID: 1452484388}
   - component: {fileID: 1452484387}
-  - component: {fileID: 1452484386}
   - component: {fileID: 1452484390}
+  - component: {fileID: 1452484386}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -19850,7 +19894,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1452484384}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6b77174815b904166ad047382f534c36, type: 3}
+  m_Script: {fileID: 11500000, guid: 251ea3343c15b4000a02573c7aad5a0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   OnActivate:
@@ -19859,14 +19903,19 @@ MonoBehaviour:
   OnDeactivate:
     m_PersistentCalls:
       m_Calls: []
+  OnProximity:
+    m_PersistentCalls:
+      m_Calls: []
   Period: 0.1
-  HandModel: {fileID: 425564312}
-  FingerName: 1
-  PointingType: 3
-  PointingDirection: {x: 0, y: 0, z: 1}
-  TargetObject: {fileID: 1452484385}
-  OnAngle: 15
-  OffAngle: 25
+  TargetObjects:
+  - {fileID: 1530335187}
+  TagName: 
+  UseLayersNotList: 0
+  Layer:
+    serializedVersion: 2
+    m_Bits: 0
+  OnDistance: 0.07
+  OffDistance: 0.08
   ShowGizmos: 1
 --- !u!65 &1452484387
 BoxCollider:
@@ -19938,7 +19987,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 465abd67113645a4d9fd3347d0d46b1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fingerDirectionDetector: {fileID: 1452484386}
+  IsSelected: 0
+  proximityDetector: {fileID: 0}
 --- !u!4 &1454187501 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 480344, guid: 737b901aecdb514459be83a6eb717f65,

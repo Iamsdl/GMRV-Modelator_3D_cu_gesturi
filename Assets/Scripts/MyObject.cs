@@ -19,7 +19,10 @@ public class MyObject : MonoBehaviour
             material.color = value;
         }
     }
-    public FingerDirectionDetector fingerDirectionDetector;
+
+    public bool IsSelected;
+
+    public ProximityDetector proximityDetector;
 
     // Start is called before the first frame update
     void Start()
@@ -31,12 +34,13 @@ public class MyObject : MonoBehaviour
     {
         Mesh = GetComponent<MeshFilter>().mesh;
         material = GetComponent<MeshRenderer>().material;
-        fingerDirectionDetector = GetComponent<FingerDirectionDetector>();
+        proximityDetector = GetComponent<ProximityDetector>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        this.proximityDetector.OnDistance = this.transform.localScale.x*0.7f;
+        this.proximityDetector.OffDistance = this.transform.localScale.x * 0.8f;
     }
 }
