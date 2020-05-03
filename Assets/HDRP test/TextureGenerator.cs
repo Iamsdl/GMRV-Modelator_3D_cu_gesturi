@@ -2,29 +2,29 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Experimental.VFX;
+using UnityEngine.VFX;
 
 public class TextureGenerator : MonoBehaviour
 {
-    public Vector3[] points;
-    public VisualEffect visualEffect;
+    public static Vector3[] points;
 
     // Start is called before the first frame update
     void Start()
     {
-        Texture3D texture = CreateTexture3D(32);
-        //visualEffect.SetTexture("VectorField", texture);
-        UnityEditor.AssetDatabase.CreateAsset(texture, "Assets/test/t3d.asset");
+        //Texture3D texture = CreateTexture3D(32, points, out float max);
+        //UnityEditor.AssetDatabase.CreateAsset(texture, "Assets/HDRP test/t3d.asset");
     }
 
-    Texture3D CreateTexture3D(int textureSize)
+    public static Texture3D CreateTexture3D(int textureSize, Vector3[] points)
     {
         Vector3 min = GetMin(points);
         Translate(points, -min);
         Vector3 max = GetMax(points);
-        Scale(points, 1.0f / max.MaxComponent());
-        Scale(points, 0.6f * textureSize);
-        Translate(points, Vector3.one * textureSize * 0.2f);
+        Vector3 maxinv = new Vector3(1 / max.x, 1 / max.y, 1 / max.z);
+        Scale(points, maxinv);
+
+        Scale(points, 0.5f * textureSize);
+        Translate(points, Vector3.one * textureSize * 0.25f);
 
         Color[] colorArray = new Color[textureSize * textureSize * textureSize];
         Texture3D texture = new Texture3D(textureSize, textureSize, textureSize, TextureFormat.RGBA32, true);
@@ -49,6 +49,7 @@ public class TextureGenerator : MonoBehaviour
                     }
 
                     Vector3 sum = Vector3.zero;
+
                     for (int i = 0; i < points.Length - 1; i++)
                     {
                         sum += (points[i + 1] - points[i]) / (distances[i] + 1);
@@ -65,7 +66,7 @@ public class TextureGenerator : MonoBehaviour
         return texture;
     }
 
-    private bool IsInSegment(Vector3 voxel, Vector3 startPoint, Vector3 endPoint)
+    private static bool IsInSegment(Vector3 voxel, Vector3 startPoint, Vector3 endPoint)
     {
         Vector3 vector1 = startPoint - voxel;
         Vector3 normal1 = startPoint - endPoint;
@@ -100,13 +101,20 @@ public class TextureGenerator : MonoBehaviour
         return sum;
     }
 
-    private float DistanceToLine(Vector3 point, Vector3 startPoint, Vector3 endPoint)
+    private static float DistanceToLine(Vector3 point, Vector3 startPoint, Vector3 endPoint)
     {
         Vector3 direction = (endPoint - startPoint).normalized;
         return Vector3.Cross((endPoint - point), direction).magnitude;
     }
 
-    private void Scale(Vector3[] points, float max)
+    private static void Scale(Vector3[] points, Vector3 max)
+    {
+        for (int i = 0; i < points.Length; i++)
+        {
+            points[i] = Vector3.Scale(points[i], max);
+        }
+    }
+    private static void Scale(Vector3[] points, float max)
     {
         for (int i = 0; i < points.Length; i++)
         {
@@ -114,7 +122,7 @@ public class TextureGenerator : MonoBehaviour
         }
     }
 
-    private void Translate(Vector3[] points, Vector3 value)
+    private static void Translate(Vector3[] points, Vector3 value)
     {
         for (int i = 0; i < points.Length; i++)
         {
@@ -122,7 +130,7 @@ public class TextureGenerator : MonoBehaviour
         }
     }
 
-    private Vector3 GetMin(Vector3[] points)
+    public static Vector3 GetMin(Vector3[] points)
     {
         Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
         for (int i = 0; i < points.Length; i++)
@@ -131,7 +139,7 @@ public class TextureGenerator : MonoBehaviour
         }
         return min;
     }
-    private Vector3 GetMax(Vector3[] points)
+    public static Vector3 GetMax(Vector3[] points)
     {
         Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
         for (int i = 0; i < points.Length; i++)

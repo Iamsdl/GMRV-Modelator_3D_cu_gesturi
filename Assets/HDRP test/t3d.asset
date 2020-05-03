@@ -12,11 +12,12 @@ Texture3D:
     Hash: 00000000000000000000000000000000
   m_ForcedFallbackFormat: 4
   m_DownscaleFallback: 0
-  serializedVersion: 2
+  serializedVersion: 3
+  m_ColorSpace: 0
+  m_Format: 8
   m_Width: 32
   m_Height: 32
   m_Depth: 32
-  m_Format: 4
   m_MipCount: 6
   m_DataSize: 149796
   m_TextureSettings:

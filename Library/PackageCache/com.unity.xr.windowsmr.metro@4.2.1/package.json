@@ -1,0 +1,29 @@
+{
+  "name": "com.unity.xr.windowsmr.metro",
+  "displayName": "Windows Mixed Reality",
+  "version": "4.2.1",
+  "unity": "2019.3",
+  "description": "*** IMPORTANT : READ ME ***\n\nThis package is deprecated and will be removed in Unity 2020.1.\n\nIf you are using this package, consider upgrading to the XR Plugin System. More information on the XR Plugin System can be found here: https://docs.unity3d.com/2019.3/Documentation/Manual/XR.html \n\nWindows Mixed Reality XR SDK for use with native XR integration in Unity.",
+  "keywords": [
+    "windowsmr",
+    "xr",
+    "ar",
+    "vr",
+    "mr",
+    "windows",
+    "mixed",
+    "reality",
+    "hololens",
+    "holo",
+    "deprecated"
+  ],
+  "dependencies": {
+    "com.unity.ugui": "1.0.0"
+  },
+  "repository": {
+    "footprint": "7d2cc638e93f885395766693263184a50e39bcdc",
+    "type": "git",
+    "url": "https://github.com/Unity-Technologies/com.unity.xr.windowsmr.metro.git",
+    "revision": "c134f512e98cb7c3046a6a714bd2e9340649b502"
+  }
+}

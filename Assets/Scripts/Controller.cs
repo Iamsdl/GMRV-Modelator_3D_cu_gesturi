@@ -3,17 +3,30 @@ using Leap.Unity;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Animations;
+using UnityEngine.VFX;
 
 public class Controller : MonoBehaviour
 {
+    #region Fields
     private GameObject mainCamera;
 
+    #region Particles
+    public ParticlesController ParticlesController;
+
+    public LineRenderer LineRenderer;
+
+
+    #endregion
+
+    #region detectors
     private ExtendedFingerDetector detectorGrabRight;
     private ExtendedFingerDetector detectorGrabLeft;
     private ExtendedFingerDetector detectorPinchLeft;
     private ExtendedFingerDetector detectorPinchRight;
+    #endregion
 
     #region Lists
     [Header("Lists")]
@@ -32,35 +45,51 @@ public class Controller : MonoBehaviour
     {
         get
         {
-            if (ActiveSelectedList.Count != 0)
+            if (SelectedObjects.Count != 0)
             {
                 return SelectedObjects[SelectedObjects.Count - 1];
             }
             else return null;
         }
     }
+
     #endregion
-    
+
     #region Select
     [Header("Select")]
-    public HoverItemDataCheckbox deselectingCheckbox;
-    private SelectingState SelectingState;
-    public Dictionary<ObjectStates, Color> ObjectColors;
+    public Dictionary<ObjectStates, Color> ObjectColors = new Dictionary<ObjectStates, Color>
+        {
+            { ObjectStates.Deselected, Color.gray },
+            { ObjectStates.Selected, new Color(1, 0.5f, 0) },
+            { ObjectStates.Active, Color.yellow },
+            { ObjectStates.Inactive, Color.black }
+        };
     #endregion
 
     #region Transform
     private TransformingState TransformingState;
 
-    [Header("Transform types")]
-    public HoverItemDataRadio translatingRadio;
-    public HoverItemDataRadio RotatingRadio;
-    public HoverItemDataRadio ScalingRadio;
-
     [Header("Transform axes")]
-    public HoverItemDataCheckbox xAxis;
-    public HoverItemDataCheckbox yAxis;
-    public HoverItemDataCheckbox zAxis;
+    public HoverItemDataCheckbox XAxis;
+    public HoverItemDataCheckbox YAxis;
+    public HoverItemDataCheckbox ZAxis;
 
+    private float initialScale;
+    private float initialDistance;
+    #endregion
+
+    #region Edit
+    [Header("Edit")]
+    public HoverItemDataCheckbox EditModeCheckbox;
+    public HoverItemDataCheckbox ExtrudeCheckbox;
+    public HoverItemDataSelector FillButton;
+    public HoverItemDataSelector AddVertexButton;
+
+    private EditingState EditingState;
+    private Vector3[] vertices;
+    #endregion
+
+    #region Aux objects
     [Header("Transform aux objects")]
     public GameObject transformAuxObject1;
     private PositionConstraint positionConstraint;
@@ -69,29 +98,24 @@ public class Controller : MonoBehaviour
     public GameObject transformAuxObject2;
     public GameObject leftPalm;
     public GameObject rightPalm;
-
-    private float initialScale;
-    private float initialDistance;
+    private bool drawingPath;
     #endregion
-
-    #region Edit
-    [Header("Edit")]
-    private EditingState EditingState;
-    private Vector3[] vertices;
     #endregion
 
     // Start is called before the first frame update
     void Start()
     {
-        xAxis.OnValueChanged += XAxis_OnValueChanged;
-        yAxis.OnValueChanged += YAxis_OnValueChanged;
-        zAxis.OnValueChanged += ZAxis_OnValueChanged;
+
+        mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
+
+        XAxis.OnValueChanged += XAxis_OnValueChanged;
+        YAxis.OnValueChanged += YAxis_OnValueChanged;
+        ZAxis.OnValueChanged += ZAxis_OnValueChanged;
 
         positionConstraint = transformAuxObject1.GetComponent<PositionConstraint>();
         rotationConstraint = transformAuxObject1.GetComponent<RotationConstraint>();
         scaleConstraint = transformAuxObject1.GetComponent<ScaleConstraint>();
 
-        mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
         InitialiseDetectors();
 
         AllObjects = new List<MyObject>();
@@ -100,37 +124,40 @@ public class Controller : MonoBehaviour
         SelectedVertices = new List<MyObject>();
 
         ActiveSelectedList = SelectedObjects;
+        ActiveAllList = AllObjects;
 
-        SelectingState = SelectingState.None;
         TransformingState = TransformingState.Translating;
         EditingState = EditingState.None;
 
-        ObjectColors = new Dictionary<ObjectStates, Color>
-        {
-            { ObjectStates.Deselected, Color.gray },
-            { ObjectStates.Selected, new Color(1, 0.5f, 0) },
-            { ObjectStates.Active, Color.yellow },
-            { ObjectStates.Inactive, Color.black }
-        };
+        ParticlesController.AddParticlesButton.OnSelected += AddParticlesButton_OnSelected;
+
+        EditModeCheckbox.OnValueChanged += EditModeCheckbox_OnValueChanged;
+        ExtrudeCheckbox.OnValueChanged += ExtrudeCheckbox_OnValueChanged;
+        AddVertexButton.OnSelected += AddVertexButton_OnSelected;
+        FillButton.OnSelected += FillButton_OnSelected;
+
+
     }
+
+    
 
     private void InitialiseDetectors()
     {
         detectorGrabLeft = this.GetComponents<ExtendedFingerDetector>()[0];
-        detectorGrabLeft.OnActivate.AddListener(() => { TransformingState = TransformingState.RotoScale; });
-        detectorGrabLeft.OnDeactivate.AddListener(() => { TransformingState = TransformingState.Translating; });
+        detectorGrabLeft.OnActivate.AddListener(ActivateRotoScale);
+        detectorGrabLeft.OnDeactivate.AddListener(DeactivateRotoScale);
 
         detectorGrabRight = this.GetComponents<ExtendedFingerDetector>()[1];
-        detectorGrabRight.OnActivate.AddListener(() => { EnableTransform(AllObjects); });
-        detectorGrabRight.OnDeactivate.AddListener(() => { DisableTransform(); });
+        detectorGrabRight.OnActivate.AddListener(EnableTransformAll);
+        detectorGrabRight.OnDeactivate.AddListener(DisableTransform);
 
         detectorPinchLeft = this.GetComponents<ExtendedFingerDetector>()[2];
-        detectorPinchLeft.OnActivate.AddListener(() => { TransformingState = TransformingState.RotoScale; });
-        detectorPinchLeft.OnDeactivate.AddListener(() => { TransformingState = TransformingState.Translating; });
+        //detectorPinchLeft.OnActivate.AddListener(() => { TransformingState = TransformingState.RotoScale; });
+        //detectorPinchLeft.OnDeactivate.AddListener(() => { TransformingState = TransformingState.Translating; });
 
         detectorPinchRight = this.GetComponents<ExtendedFingerDetector>()[3];
-        detectorPinchRight.OnActivate.AddListener(() => { EnableTransform(SelectedObjects); });
-        detectorPinchRight.OnDeactivate.AddListener(() => { DisableTransform(); });
+        detectorPinchRight.OnActivate.AddListener(EnableTransformSelected);
+        detectorPinchRight.OnDeactivate.AddListener(DisableTransform);
     }
 
     // Update is called once per frame
@@ -140,7 +167,7 @@ public class Controller : MonoBehaviour
         {
             Translate();
         }
-        if (this.TransformingState == TransformingState.RotoScale)
+        else if (this.TransformingState == TransformingState.RotoScale)
         {
             Rotate();
             Scale();
@@ -165,13 +192,31 @@ public class Controller : MonoBehaviour
                 }
                 catch (Exception e)
                 {
-                    Debug.Log(e.Message);
                     //handles[i] might be deleted midframe, this is expected so continue
+                    Debug.Log(e.Message);
                 }
             }
         }
+        if (drawingPath)
+        {
+            if (LineRenderer.positionCount == 0 || Vector3.Distance(rightPalm.transform.position, LineRenderer.GetPosition(LineRenderer.positionCount - 1)) > 0.05)
+            {
+                LineRenderer.positionCount++;
+                LineRenderer.SetPosition(LineRenderer.positionCount - 1, rightPalm.transform.position);
+            }
+
+        }
     }
 
+    #region Transforming
+    private void ActivateRotoScale()
+    {
+        TransformingState = TransformingState.RotoScale;
+    }
+    private void DeactivateRotoScale()
+    {
+        TransformingState = TransformingState.Translating;
+    }
     private void Translate()
     {
         //no need to do anything, unity parenting/constraints take care of things.
@@ -187,13 +232,50 @@ public class Controller : MonoBehaviour
 
         transformAuxObject2.transform.localScale = new Vector3(newScale, newScale, newScale);
     }
+    #endregion
 
+    #region Particles
+    private void AddParticlesButton_OnSelected(IItemDataSelectable pItem)
+    {
+        detectorPinchRight.OnActivate.RemoveListener(EnableTransformSelected);
+        detectorPinchRight.OnDeactivate.RemoveListener(DisableTransform);
 
+        detectorGrabRight.OnActivate.RemoveListener(EnableTransformAll);
+        detectorGrabRight.OnDeactivate.RemoveListener(DisableTransform);
+
+        detectorGrabRight.OnActivate.AddListener(StartDrawingPath);
+        detectorGrabRight.OnDeactivate.AddListener(StopDrawingPath);
+    }
+    private void StartDrawingPath()
+    {
+        LineRenderer.positionCount = 0;
+        drawingPath = true;
+    }
+    private void StopDrawingPath()
+    {
+        drawingPath = false;
+
+        ParticlesController.StopDrawingPath(LineRenderer);
+
+        detectorPinchRight.OnActivate.AddListener(EnableTransformSelected);
+        detectorPinchRight.OnDeactivate.AddListener(DisableTransform);
+
+        detectorGrabRight.OnActivate.AddListener(EnableTransformAll);
+        detectorGrabRight.OnDeactivate.AddListener(DisableTransform);
+
+        detectorGrabRight.OnActivate.RemoveListener(StartDrawingPath);
+        detectorGrabRight.OnDeactivate.RemoveListener(StopDrawingPath);
+    }
+
+    
+    #endregion
+
+    #region Axis constraints
     public void UpdateConstraints()
     {
-        Axis x = xAxis.Value == true ? Axis.X : Axis.None;
-        Axis y = yAxis.Value == true ? Axis.Y : Axis.None;
-        Axis z = zAxis.Value == true ? Axis.Z : Axis.None;
+        Axis x = XAxis.Value == true ? Axis.X : Axis.None;
+        Axis y = YAxis.Value == true ? Axis.Y : Axis.None;
+        Axis z = ZAxis.Value == true ? Axis.Z : Axis.None;
 
         positionConstraint.translationAxis = x | y | z;
         rotationConstraint.rotationAxis = x | y | z;
@@ -211,8 +293,17 @@ public class Controller : MonoBehaviour
     {
         UpdateConstraints();
     }
+    #endregion
 
-
+    #region Grabbing
+    private void EnableTransformAll()
+    {
+        EnableTransform(ActiveAllList);
+    }
+    private void EnableTransformSelected()
+    {
+        EnableTransform(ActiveSelectedList);
+    }
     public void EnableTransform(List<MyObject> objects)
     {
         ReleaseObjects();
@@ -231,6 +322,11 @@ public class Controller : MonoBehaviour
         }
 
         GrabObjects(objects);
+    }
+    #region Used in EnableTransform
+    private void ReleaseObjects()
+    {
+        transformAuxObject1.transform.DetachChildren();
     }
     private void PrepareTranslate()
     {
@@ -251,24 +347,6 @@ public class Controller : MonoBehaviour
         initialScale = transformAuxObject2.transform.localScale.x;
         initialDistance = Vector3.Distance(transformAuxObject2.transform.position, leftPalm.transform.position);
     }
-
-    public void DisableTransform()
-    {
-        switch (TransformingState)
-        {
-            case TransformingState.Translating:
-                positionConstraint.constraintActive = false;
-                break;
-            case TransformingState.RotoScale:
-                rotationConstraint.constraintActive = false;
-                scaleConstraint.constraintActive = false;
-                break;
-            default:
-                break;
-        }
-        transformAuxObject2.transform.parent = null;
-    }
-
     private void GrabObjects(List<MyObject> objects)
     {
         if (objects.Count != 0)
@@ -292,48 +370,53 @@ public class Controller : MonoBehaviour
         sum /= objectList.Count;
         return sum;
     }
-
-    private void ReleaseObjects()
+    private static Vector3 GetMedianPoint(Vector3[] points)
     {
-        transformAuxObject1.transform.DetachChildren();
+        Vector3 sum = Vector3.zero;
+        foreach (Vector3 item in points)
+        {
+            sum += item;
+        }
+        sum /= points.Length;
+        return sum;
     }
+    #endregion
+    public void DisableTransform()
+    {
+        switch (TransformingState)
+        {
+            case TransformingState.Translating:
+                positionConstraint.constraintActive = false;
+                break;
+            case TransformingState.RotoScale:
+                rotationConstraint.constraintActive = false;
+                scaleConstraint.constraintActive = false;
+                break;
+            default:
+                break;
+        }
+        transformAuxObject2.transform.parent = null;
+    }
+    #endregion
 
-
-    //public void DisableTransforming(Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType rowEntryType)
-    //{
-    //    if (rowEntryType == Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType.FromInside)
-    //    {
-    //        if (this.TransformingState != TransformingState.None)
-    //        {
-    //            this.TransformingState = TransformingState.None;
-    //            transformAuxObject1.transform.DetachChildren();
-    //            return;
-    //        }
-    //        DisableEditing(rowEntryType);
-    //    }
-
-    //}
-
-    //public void ToggleSelection()
-    //{
-    //    if (deselectingCheckbox.Value)
-    //    {
-    //        this.SelectingState = SelectingState.Deselecting;
-    //    }
-    //    else
-    //    {
-    //        this.SelectingState = SelectingState.Selecting;
-    //    }
-    //}
-
-    //public void DisableSelection(Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType rowEntryType)
-    //{
-    //    if (rowEntryType == Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType.FromInside)
-    //    {
-    //        this.SelectingState = SelectingState.None;
-    //    }
-    //}
-
+    #region Edit mode
+    private void EditModeCheckbox_OnValueChanged(IItemDataSelectable<bool> pItem)
+    {
+        if (EditModeCheckbox.Value)
+        {
+            EnableEditing();
+            ExtrudeCheckbox.IsEnabled = true;
+            FillButton.IsEnabled = true;
+            AddVertexButton.IsEnabled = true;
+        }
+        else
+        {
+            DisableEditing();
+            ExtrudeCheckbox.IsEnabled = false;
+            FillButton.IsEnabled = false;
+            AddVertexButton.IsEnabled = false;
+        }
+    }
     public void EnableEditing()
     {
         if (LastSelectedObject != null)
@@ -348,26 +431,169 @@ public class Controller : MonoBehaviour
                 item.Color = ObjectColors[ObjectStates.Inactive];
             }
             ActiveSelectedList = SelectedVertices;
+            ActiveAllList = AllVertices;
             this.EditingState = EditingState.Vertices;
         }
     }
-
-    public void DisableEditing(Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType rowEntryType)
+    public void DisableEditing()
     {
-        if (rowEntryType == Hover.InterfaceModules.Cast.HovercastRowSwitchingInfo.RowEntryType.FromInside)
+        while (AllVertices.Count != 0)
         {
-            while (AllVertices.Count != 0)
-            {
-                var temp = AllVertices[0];
-                AllVertices.Remove(temp);
-                Destroy(temp.gameObject);
-            }
-            SelectedVertices.Clear();
-            ActiveSelectedList = SelectedObjects;
-            this.EditingState = EditingState.None;
+            var temp = AllVertices[0];
+            AllVertices.Remove(temp);
+            Destroy(temp.gameObject);
+        }
+        SelectedVertices.Clear();
+        ActiveSelectedList = SelectedObjects;
+        ActiveAllList = AllObjects;
+        this.EditingState = EditingState.None;
+    }
+
+    private void ExtrudeCheckbox_OnValueChanged(IItemDataSelectable<bool> pItem)
+    {
+        if (ExtrudeCheckbox.Value)
+        {
+            detectorPinchRight.OnActivate.RemoveListener(EnableTransformSelected);
+
+            detectorPinchRight.OnActivate.AddListener(Extrude);
+        }
+        else
+        {
+            detectorPinchRight.OnActivate.AddListener(EnableTransformSelected);
+
+            detectorPinchRight.OnActivate.RemoveListener(Extrude);
         }
     }
 
+    private void Extrude()
+    {
+        if (SelectedVertices.Count > 1 && SelectedVertices.Count < 5)
+        {
+            MyObject[] newVertices = DuplicateSelectedVertices();
+
+            int badPractice = SelectedVertices.Count == 2 ? 1 : 0;
+            for (int i = 0; i < SelectedVertices.Count - badPractice; i++)
+            {
+                MakeFace(SelectedVertices[i],
+                         SelectedVertices[(i + 1) % SelectedVertices.Count],
+                         newVertices[(i + 1) % SelectedVertices.Count],
+                         newVertices[i]);
+            }
+
+            switch (SelectedVertices.Count)
+            {
+                case 3:
+                    MakeFace(newVertices[0], newVertices[1], newVertices[2]);
+                    break;
+                case 4:
+                    MakeFace(newVertices[0], newVertices[1], newVertices[2], newVertices[3]);
+                    break;
+                default:
+                    break;
+            }
+
+            DeselectAllVertices();
+
+            Select(newVertices);
+
+            EnableTransformSelected();
+        }
+    }
+
+    private void AddVertexButton_OnSelected(IItemDataSelectable pItem)
+    {
+        MyObject[] newVertices = DuplicateSelectedVertices();
+        DeselectAllVertices();
+        Select(newVertices);
+    }
+
+    private void DeselectAllVertices()
+    {
+        foreach (var item in AllVertices)
+        {
+            if (item.IsSelected)
+            {
+                Deselect(item);
+            }
+        }
+    }
+
+    private MyObject[] DuplicateSelectedVertices()
+    {
+        int k = SelectedVertices.Count;
+        Vector3[] newVerticesArray = new Vector3[vertices.Length + k];
+
+        vertices.CopyTo(newVerticesArray, 0);
+        for (int i = 0; i < k; i++)
+        {
+            int j = AllVertices.IndexOf(SelectedVertices[i]);
+            Vector3 vertex = newVerticesArray[j];
+            newVerticesArray[vertices.Length + i] = vertex;
+        }
+
+        //SelectedVertices.Select(x => x.transform.position).ToArray().CopyTo(newVerticesArray, vertices.Length);
+
+        vertices = newVerticesArray;
+        LastSelectedObject.Mesh.vertices = vertices;
+
+
+        MyObject[] createdVertices = new MyObject[k];
+        int n = newVerticesArray.Length;
+        for (int i = n - k; i < n; i++)
+        {
+            MyObject newVertexObject = CreateVertex(LastSelectedObject.transform.TransformPoint(newVerticesArray[i]));
+            AllVertices.Add(newVertexObject);
+            createdVertices[i - (n - k)] = newVertexObject;
+        }
+
+        return createdVertices;
+    }
+
+    private void FillButton_OnSelected(IItemDataSelectable pItem)
+    {
+        if (SelectedVertices.Count == 3)
+        {
+            MakeFace(SelectedVertices[0],
+                         SelectedVertices[1],
+                         SelectedVertices[2]);
+        }
+        else if (SelectedVertices.Count == 4)
+        {
+            MakeFace(SelectedVertices[0],
+                     SelectedVertices[1],
+                     SelectedVertices[2],
+                     SelectedVertices[3]);
+        }
+    }
+
+    private void MakeFace(MyObject myObject1, MyObject myObject2, MyObject myObject3, MyObject myObject4)
+    {
+        MakeFace(myObject1, myObject2, myObject3);
+        MakeFace(myObject3, myObject4, myObject1);
+    }
+
+    private void MakeFace(MyObject obj1, MyObject obj2, MyObject obj3)
+    {
+        int v1 = AllVertices.IndexOf(obj1);
+        int v2 = AllVertices.IndexOf(obj2);
+        int v3 = AllVertices.IndexOf(obj3);
+        MakeFace(v1, v2, v3);
+        MakeFace(v1, v3, v2);
+    }
+
+    private void MakeFace(int v1, int v2, int v3)
+    {
+        int[] oldIndices = LastSelectedObject.Mesh.GetIndices(0);
+        int[] newIndices = new int[oldIndices.Length + 3];
+        oldIndices.CopyTo(newIndices, 0);
+        newIndices[oldIndices.Length] = v1;
+        newIndices[oldIndices.Length + 1] = v2;
+        newIndices[oldIndices.Length + 2] = v3;
+        LastSelectedObject.Mesh.SetIndices(newIndices, MeshTopology.Triangles, 0);
+    }
+    #endregion
+
+    #region Select objects
     public void SelectOrDeselect(MyObject myObject)
     {
         if (EditingState == EditingState.Vertices)
@@ -378,7 +604,7 @@ public class Controller : MonoBehaviour
             }
         }
 
-        if(myObject.IsSelected)
+        if (myObject.IsSelected)
         {
             Deselect(myObject);
         }
@@ -387,17 +613,22 @@ public class Controller : MonoBehaviour
             Select(myObject);
         }
     }
-    private void Select(MyObject myObject)
+    #region used in SelectOrDeselect
+    private void Select(params MyObject[] myObjects)
     {
-        if (!ActiveSelectedList.Contains(myObject))
+        foreach (var myObject in myObjects)
         {
-            if (LastSelectedObject != null)
+            if (!ActiveSelectedList.Contains(myObject))
             {
-                LastSelectedObject.Color = ObjectColors[ObjectStates.Selected];
+                if (LastSelectedObject != null)
+                {
+                    LastSelectedObject.Color = ObjectColors[ObjectStates.Selected];
+                }
+                ActiveSelectedList.Add(myObject);
+                myObject.IsSelected = true;
+                EditModeCheckbox.IsEnabled = true;
+                myObject.Color = ObjectColors[ObjectStates.Active];
             }
-            ActiveSelectedList.Add(myObject);
-            myObject.IsSelected = true;
-            myObject.Color = ObjectColors[ObjectStates.Active];
         }
     }
     private void Deselect(MyObject myObject)
@@ -411,19 +642,15 @@ public class Controller : MonoBehaviour
             {
                 LastSelectedObject.Color = ObjectColors[ObjectStates.Active];
             }
+            else
+            {
+                EditModeCheckbox.IsEnabled = false;
+            }
         }
     }
-
-    public void DeleteSelected()
-    {
-        foreach (var item in ActiveSelectedList)
-        {
-            AllObjects.Remove(item);
-            Destroy(item.gameObject);
-        }
-        SelectedObjects.Clear();
-    }
-
+    #endregion
+    #endregion
+    #region Create objects
     private void CreateObject(ObjectType objectType)
     {
         Vector3 position = mainCamera.transform.position;
@@ -438,17 +665,18 @@ public class Controller : MonoBehaviour
         obj.Color = ObjectColors[ObjectStates.Deselected];
         AllObjects.Add(obj);
     }
-
+    public void CreateQuad()
+    {
+        CreateObject(ObjectType.Quad);
+    }
     public void CreateCube()
     {
         CreateObject(ObjectType.Cube);
     }
-
     public void CreateSphere()
     {
         CreateObject(ObjectType.Sphere);
     }
-
     public MyObject CreateVertex(Vector3 position)
     {
         MyObject obj = Instantiate(ObjectsToInstantiate[Convert.ToInt32(ObjectType.Vertex)], position, Quaternion.identity).GetComponent<MyObject>();
@@ -458,6 +686,19 @@ public class Controller : MonoBehaviour
         obj.Color = ObjectColors[ObjectStates.Deselected];
         return obj;
     }
+    #endregion
+
+    #region Delete objects
+    public void DeleteSelected()
+    {
+        foreach (var item in ActiveSelectedList)
+        {
+            AllObjects.Remove(item);
+            Destroy(item.gameObject);
+        }
+        SelectedObjects.Clear();
+    }
+    #endregion
 
     public void Quit()
     {
@@ -468,9 +709,10 @@ public class Controller : MonoBehaviour
 
 public enum ObjectType
 {
-    Cube = 0,
-    Sphere = 1,
-    Vertex = 2
+    Quad = 0,
+    Cube,
+    Sphere,
+    Vertex
 }
 
 public enum SelectingState
