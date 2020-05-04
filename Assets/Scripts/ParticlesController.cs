@@ -12,6 +12,7 @@ public class ParticlesController : MonoBehaviour
     public HoverItemDataSelector FireTextureButton;
 
     public HoverItemDataSlider IntensitySlider;
+    public HoverItemDataSlider DragSlider;
 
     public Texture2D SmokeTexture;
     public Texture2D FireTexture;
@@ -28,11 +29,17 @@ public class ParticlesController : MonoBehaviour
         SmokeTextureButton.OnSelected += SmokeTextureButton_OnSelected;
         FireTextureButton.OnSelected += FireTextureButton_OnSelected;
         IntensitySlider.OnValueChanged += IntensitySlider_OnValueChanged;
+        DragSlider.OnValueChanged += DragSlider_OnValueChanged;
+    }
+
+    private void DragSlider_OnValueChanged(IItemDataSelectable<float> pItem)
+    {
+        Particles.SetFloat("Field drag", DragSlider.Value);
     }
 
     private void IntensitySlider_OnValueChanged(IItemDataSelectable<float> pItem)
     {
-        Particles.SetFloat("Field Intensity", IntensitySlider.Value);
+        Particles.SetFloat("Field intensity", IntensitySlider.Value);
     }
 
     private void SmokeTextureButton_OnSelected(IItemDataSelectable pItem)
