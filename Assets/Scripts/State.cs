@@ -3,66 +3,21 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class State : MonoBehaviour
+public abstract class State : IState
 {
-    public delegate void StateChanged();
-    public event StateChanged OnStateChanged;
+    protected Controller controller;
 
-    public bool transforming;
-    public bool editing;
-    public bool selecting;
-
-    // Start is called before the first frame update
-    void Start()
+    protected State(Controller controller)
     {
-        transforming = false;
-        editing = false;
-        selecting = false;
+        this.controller = controller;
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
-
-    public void EnableSelecting()
-    {
-        selecting = true;
-        OnStateChanged?.Invoke();
-    }
-    public void EnableTransforming()
-    {
-        transforming = true;
-        OnStateChanged?.Invoke();
-    }
-    public void EnableEditing()
-    {
-        editing = true;
-        OnStateChanged?.Invoke();
-    }
-    public void DisableStates(HovercastRowSwitchingInfo.RowEntryType rowEntryType)
-    {
-        if (rowEntryType == HovercastRowSwitchingInfo.RowEntryType.FromInside)
-        {
-            if (transforming)
-            {
-                transforming = false;
-                OnStateChanged?.Invoke();
-            }
-            else if (editing)
-            {
-                editing = false;
-                OnStateChanged?.Invoke();
-            }
-        }
-    }
-    public void DisableSelecting(HovercastRowSwitchingInfo.RowEntryType rowEntryType)
-    {
-        if (rowEntryType == HovercastRowSwitchingInfo.RowEntryType.FromInside)
-        {
-            selecting = false;
-            OnStateChanged?.Invoke();
-        }
-    }
+    public abstract void GrabLeft_OnActivate();
+    public abstract void GrabLeft_OnDeactivate();
+    public abstract void GrabRight_OnActivate();
+    public abstract void GrabRight_OnDeactivate();
+    public abstract void PinchLeft_OnActivate();
+    public abstract void PinchLeft_OnDeactivate();
+    public abstract void PinchRight_OnActivate();
+    public abstract void PinchRight_OnDeactivate();
 }

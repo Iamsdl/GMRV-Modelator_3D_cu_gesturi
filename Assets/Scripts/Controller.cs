@@ -13,6 +13,9 @@ public class Controller : MonoBehaviour
     #region Fields
     private GameObject mainCamera;
 
+    //public IState state;
+    //public Dictionary<StateEnum, IState> States;
+
     #region Particles
     public ParticlesController ParticlesController;
 
@@ -67,7 +70,7 @@ public class Controller : MonoBehaviour
     #endregion
 
     #region Transform
-    private TransformingState TransformingState;
+    public TransformingState TransformingState;
 
     [Header("Transform axes")]
     public HoverItemDataCheckbox XAxis;
@@ -139,26 +142,69 @@ public class Controller : MonoBehaviour
 
     }
 
-    
+
 
     private void InitialiseDetectors()
     {
         detectorGrabLeft = this.GetComponents<ExtendedFingerDetector>()[0];
-        detectorGrabLeft.OnActivate.AddListener(ActivateRotoScale);
-        detectorGrabLeft.OnDeactivate.AddListener(DeactivateRotoScale);
+        detectorGrabLeft.OnActivate.AddListener(DetectorGrabLeft_OnActivate);
+        detectorGrabLeft.OnDeactivate.AddListener(DetectorGrabLeft_OnDeactivate);
 
         detectorGrabRight = this.GetComponents<ExtendedFingerDetector>()[1];
-        detectorGrabRight.OnActivate.AddListener(EnableTransformAll);
-        detectorGrabRight.OnDeactivate.AddListener(DisableTransform);
+        detectorGrabRight.OnActivate.AddListener(DetectorGrabRight_OnActivate);
+        detectorGrabRight.OnDeactivate.AddListener(DetectorGrabRight_OnDeactivate);
 
         detectorPinchLeft = this.GetComponents<ExtendedFingerDetector>()[2];
-        //detectorPinchLeft.OnActivate.AddListener(() => { TransformingState = TransformingState.RotoScale; });
-        //detectorPinchLeft.OnDeactivate.AddListener(() => { TransformingState = TransformingState.Translating; });
+        detectorPinchLeft.OnActivate.AddListener(DetectorPinchLeft_OnActivate);
+        detectorPinchLeft.OnDeactivate.AddListener(DetectorPinchLeft_OnDeactivate);
 
         detectorPinchRight = this.GetComponents<ExtendedFingerDetector>()[3];
-        detectorPinchRight.OnActivate.AddListener(EnableTransformSelected);
-        detectorPinchRight.OnDeactivate.AddListener(DisableTransform);
+        detectorPinchRight.OnActivate.AddListener(DetectorPinchRight_OnActivate);
+        detectorPinchRight.OnDeactivate.AddListener(DetectorPinchRight_OnDeactivate);
     }
+
+    Action DetectorGrabLeft_OnActivateDelegate;
+    Action DetectorGrabLeft_OnDeactivateDelegate;
+    Action DetectorGrabRight_OnActivateDelegate;
+    Action DetectorGrabRight_OnDeactivateDelegate;
+    Action DetectorPinchLeft_OnActivateDelegate;
+    Action DetectorPinchLeft_OnDeactivateDelegate;
+    Action DetectorPinchRight_OnActivateDelegate;
+    Action DetectorPinchRight_OnDeactivateDelegate;
+
+    void DetectorGrabLeft_OnActivate()
+    {
+        ActivateRotoScale();
+    }
+    void DetectorGrabLeft_OnDeactivate()
+    {
+        DeactivateRotoScale();
+    }
+    void DetectorGrabRight_OnActivate()
+    {
+        EnableTransformAll();
+    }
+    void DetectorGrabRight_OnDeactivate()
+    {
+        DisableTransform();
+    }
+    void DetectorPinchLeft_OnActivate()
+    {
+
+    }
+    void DetectorPinchLeft_OnDeactivate()
+    {
+
+    }
+    void DetectorPinchRight_OnActivate()
+    {
+        EnableTransformSelected();
+    }
+    void DetectorPinchRight_OnDeactivate()
+    {
+        DisableTransform();
+    }
+
 
     // Update is called once per frame
     void Update()
@@ -267,7 +313,7 @@ public class Controller : MonoBehaviour
         detectorGrabRight.OnDeactivate.RemoveListener(StopDrawingPath);
     }
 
-    
+
     #endregion
 
     #region Axis constraints

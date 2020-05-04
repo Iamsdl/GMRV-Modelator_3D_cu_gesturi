@@ -5236,6 +5236,7 @@ MonoBehaviour:
   - {fileID: 1452484384}
   - {fileID: 796410375}
   - {fileID: 930111556}
+  TransformingState: 0
   XAxis: {fileID: 430368321}
   YAxis: {fileID: 103944143}
   ZAxis: {fileID: 427427332}
