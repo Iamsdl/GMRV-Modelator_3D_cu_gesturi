@@ -273,7 +273,7 @@ public class Controller : MonoBehaviour
     }
     private void Scale()
     {
-        float distance = Vector3.Distance(this.transformAuxObject2.transform.position, leftPalm.transform.position);
+        float distance = Vector3.Distance(this.transformAuxObject2.transform.position, rightPalm.transform.position);
         float newScale = initialScale + distance - initialDistance;
 
         transformAuxObject2.transform.localScale = new Vector3(newScale, newScale, newScale);
@@ -391,7 +391,7 @@ public class Controller : MonoBehaviour
         scaleConstraint.constraintActive = true;
 
         initialScale = transformAuxObject2.transform.localScale.x;
-        initialDistance = Vector3.Distance(transformAuxObject2.transform.position, leftPalm.transform.position);
+        initialDistance = Vector3.Distance(transformAuxObject2.transform.position, rightPalm.transform.position);
     }
     private void GrabObjects(List<MyObject> objects)
     {

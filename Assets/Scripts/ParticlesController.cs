@@ -13,6 +13,7 @@ public class ParticlesController : MonoBehaviour
 
     public HoverItemDataSlider IntensitySlider;
     public HoverItemDataSlider DragSlider;
+    public HoverItemDataSlider SizeSlider;
 
     public Texture2D SmokeTexture;
     public Texture2D FireTexture;
@@ -21,7 +22,7 @@ public class ParticlesController : MonoBehaviour
     public VisualEffect Particles;
     Vector3[] points;
 
-
+    private AnimationCurve animationCurve;
 
     // Start is called before the first frame update
     void Start()
@@ -30,6 +31,13 @@ public class ParticlesController : MonoBehaviour
         FireTextureButton.OnSelected += FireTextureButton_OnSelected;
         IntensitySlider.OnValueChanged += IntensitySlider_OnValueChanged;
         DragSlider.OnValueChanged += DragSlider_OnValueChanged;
+        SizeSlider.OnValueChanged += SizeSlider_OnValueChanged;
+    }
+
+    private void SizeSlider_OnValueChanged(IItemDataSelectable<float> pItem)
+    {
+        animationCurve = AnimationCurve.Constant(Particles.GetFloat("Min lifetime"), Particles.GetFloat("Max lifetime"), SizeSlider.Value);
+        Particles.SetAnimationCurve("Particle size", animationCurve);
     }
 
     private void DragSlider_OnValueChanged(IItemDataSelectable<float> pItem)
@@ -56,7 +64,7 @@ public class ParticlesController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
     public void StopDrawingPath(LineRenderer lineRenderer)
     {
