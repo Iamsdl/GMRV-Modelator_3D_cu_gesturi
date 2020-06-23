@@ -5260,7 +5260,6 @@ MonoBehaviour:
   - {fileID: 1452484384}
   - {fileID: 796410375}
   - {fileID: 930111556}
-  TransformingState: 0
   XAxis: {fileID: 430368321}
   YAxis: {fileID: 103944143}
   ZAxis: {fileID: 427427332}
@@ -5268,8 +5267,8 @@ MonoBehaviour:
   ExtrudeCheckbox: {fileID: 1000651246}
   FillButton: {fileID: 1992116637}
   AddVertexButton: {fileID: 525849737}
-  transformAuxObject1: {fileID: 607273429}
-  transformAuxObject2: {fileID: 2030812784}
+  transformAuxObject1OP: {fileID: 607273429}
+  transformAuxObject2CT: {fileID: 2030812784}
   leftPalm: {fileID: 1890843247}
   rightPalm: {fileID: 868888807}
 --- !u!4 &301782686
@@ -10386,7 +10385,7 @@ GameObject:
   - component: {fileID: 607273432}
   - component: {fileID: 607273431}
   m_Layer: 0
-  m_Name: Transform Aux Object 1
+  m_Name: Transform Aux Object 1 OP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -34582,7 +34581,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2030812785}
   m_Layer: 0
-  m_Name: Transform Aux Object 2
+  m_Name: Transform Aux Object 2 CT
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

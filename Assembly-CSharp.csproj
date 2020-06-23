@@ -470,9 +470,7 @@
      <Compile Include="Assets\LeapMotion\Modules\InteractionEngine\Scripts\Utility\KabschSolver.cs" />
      <Compile Include="Assets\LeapMotion\Modules\InteractionEngine\Scripts\Utility\PhysicsCallbacks.cs" />
      <Compile Include="Assets\Scripts\Controller.cs" />
-     <Compile Include="Assets\Scripts\IState.cs" />
      <Compile Include="Assets\Scripts\MyObject.cs" />
-     <Compile Include="Assets\Scripts\ObjectModeState.cs" />
      <Compile Include="Assets\Scripts\ParticlesController.cs" />
      <Compile Include="Assets\Scripts\State.cs" />
      <Compile Include="Assets\Scripts\TransformController.cs" />
@@ -487,6 +485,7 @@
      <None Include="Assets\LeapMotion\Core\Shaders\PassthroughBackground.shader" />
      <None Include="Assets\LeapMotion\Core\Shaders\PassthroughForeground.shader" />
      <None Include="Assets\LeapMotion\Core\Dependencies.txt" />
+     <None Include="Assets\Scripts\ClassDiagram1.cd" />
      <None Include="Assets\LeapMotion\Core\Shaders\ThresholdOverlay.shader" />
      <None Include="Assets\LeapMotion\Core\Resources\LeapCG.cginc" />
  <Reference Include="Unity.Timeline.Editor">

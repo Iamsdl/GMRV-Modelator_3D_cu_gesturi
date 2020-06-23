@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Controller">
+    <Position X="7.5" Y="2" Width="2.75" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Class Name="Controller.Mode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Assets\Scripts\Controller.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="Controller.ObjectMode">
+        <TypeIdentifier>
+          <NewMemberFileName>Assets\Scripts\Controller.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="Controller.EditMode">
+        <TypeIdentifier>
+          <NewMemberFileName>Assets\Scripts\Controller.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="Controller.TransformType" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Assets\Scripts\Controller.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="Controller.Translating" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Assets\Scripts\Controller.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="Controller.RotoScaling" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Assets\Scripts\Controller.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Enum Name="Controller.ModeEnum" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Assets\Scripts\Controller.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="Controller.TransformTypeEnum" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Assets\Scripts\Controller.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>lASCLEoFQKQAOpiMAOhQKAgAcJAwEyIBV6IAYJmCRQA=</HashCode>
+      <FileName>Assets\Scripts\Controller.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

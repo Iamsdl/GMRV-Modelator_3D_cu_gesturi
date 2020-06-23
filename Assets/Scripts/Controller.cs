@@ -10,11 +10,219 @@ using UnityEngine.VFX;
 
 public class Controller : MonoBehaviour
 {
+    #region Nested classes - States
+    private abstract class Mode
+    {
+        protected Controller controller;
+
+        protected Dictionary<TransformTypeEnum, TransformType> transformTypes;
+        protected TransformType transformType;
+
+        public void SetTransformType(TransformTypeEnum transformType)
+        {
+            this.transformType = transformTypes[transformType];
+        }
+
+        protected Mode(Controller controller)
+        {
+            this.controller = controller;
+            transformTypes = new Dictionary<TransformTypeEnum, TransformType>()
+            {
+                { TransformTypeEnum.Translating, new Translating(this.controller,this)},
+                { TransformTypeEnum.RotoScaling, new RotoScaling(this.controller,this)}
+            };
+            transformType = transformTypes[TransformTypeEnum.Translating];
+
+
+        }
+
+        #region Grab and Pinch events
+        public virtual void GrabLeft_OnActivate() => transformType.GrabLeft_OnActivate();
+        public virtual void GrabLeft_OnDeactivate() => transformType.GrabLeft_OnDeactivate();
+        public virtual void GrabRight_OnActivate() { }
+        public virtual void GrabRight_OnDeactivate() => transformType.DisableTransform();
+        public virtual void PinchLeft_OnActivate() { }
+        public virtual void PinchLeft_OnDeactivate() { }
+        public virtual void PinchRight_OnActivate() { }
+        public virtual void PinchRight_OnDeactivate() => transformType.DisableTransform();
+        #endregion
+
+        public virtual void Update() => transformType.Update();
+
+        public virtual void EnableTransform(List<MyObject> objects) => transformType.EnableTransform(objects);
+
+        public virtual void SelectOrDeselect(MyObject obj)
+        {
+            if (obj.IsSelected)
+            {
+                controller.Deselect(obj);
+            }
+            else
+            {
+                controller.Select(obj);
+            }
+        }
+    }
+    private class ObjectMode : Mode
+    {
+        public ObjectMode(Controller controller) : base(controller)
+        {
+        }
+        #region Grab and Pinch events
+        public override void GrabRight_OnActivate() => EnableTransform(controller.AllObjects);
+        public override void PinchRight_OnActivate() => EnableTransform(controller.SelectedObjects);
+        #endregion
+    }
+    private class EditMode : Mode
+    {
+        public EditMode(Controller controller) : base(controller)
+        {
+        }
+        #region Grab and Pinch events
+        public override void GrabRight_OnActivate() => EnableTransform(controller.AllVertices);
+        public override void PinchRight_OnActivate() => EnableTransform(controller.SelectedVertices);
+        #endregion
+        public override void Update()
+        {
+            base.Update();
+            if (controller.AllVertices.Count != 0)
+            {
+                try
+                {
+                    for (int i = 0; i < controller.AllVertices.Count; i++)
+                    {
+                        controller.vertices[i] = controller.LastSelectedObject.transform.InverseTransformPoint(controller.AllVertices[i].transform.position);
+                    }
+                    controller.LastSelectedObject.Mesh.vertices = controller.vertices;
+
+                }
+                catch (Exception e)
+                {
+                    //handles[i] might be deleted midframe, this is expected so continue
+                    Debug.Log(e.Message);
+                }
+            }
+
+        }
+
+        public override void SelectOrDeselect(MyObject obj)
+        {
+            if (controller.AllObjects.Contains(obj))
+            {
+                return;
+            }
+
+            base.SelectOrDeselect(obj);
+        }
+    }
+
+    private abstract class TransformType
+    {
+        protected Controller controller;
+        protected Mode mode;
+
+        protected TransformType(Controller controller, Mode mode)
+        {
+            this.controller = controller;
+            this.mode = mode;
+        }
+
+        public virtual void Update() { }
+        public virtual void GrabLeft_OnActivate() { }
+        public virtual void GrabLeft_OnDeactivate() { }
+        public virtual void DisableTransform()
+        {
+            controller.positionConstraint.constraintActive = false;
+            controller.rotationConstraint.constraintActive = false;
+            controller.scaleConstraint.constraintActive = false;
+
+            controller.transformAuxObject2CT.transform.parent = null;
+        }
+        public virtual void EnableTransform(List<MyObject> objects) { }
+    }
+    private class Translating : TransformType
+    {
+        public Translating(Controller controller, Mode mode) : base(controller, mode)
+        {
+        }
+
+        #region Grab and Pinch events
+        public override void GrabLeft_OnActivate() => mode.SetTransformType(TransformTypeEnum.RotoScaling);
+        #endregion
+
+        public override void Update()
+        {
+            //no need to do anything, unity parenting/constraints take care of things.
+            //Translate()
+        }
+
+        public override void EnableTransform(List<MyObject> objects)
+        {
+            controller.ReleaseObjects();
+            controller.PrepareTranslate();
+            controller.GrabObjects(objects);
+            controller.positionConstraint.constraintActive = true;
+        }
+    }
+    private class RotoScaling : TransformType
+    {
+        public RotoScaling(Controller controller, Mode mode) : base(controller, mode)
+        {
+        }
+
+        #region Grab and Pinch events
+        public override void GrabLeft_OnDeactivate() => mode.SetTransformType(TransformTypeEnum.Translating);
+        #endregion
+        public override void Update()
+        {
+            Rotate();
+            Scale();
+        }
+        private void Scale()
+        {
+            float distance = Vector3.Distance(controller.transformAuxObject2CT.transform.position, controller.rightPalm.transform.position);
+            float newScale = controller.initialScale + distance - controller.initialDistance;
+
+            controller.transformAuxObject2CT.transform.localScale = new Vector3(newScale, newScale, newScale);
+        }
+        private void Rotate()
+        {
+            controller.transformAuxObject2CT.transform.LookAt(controller.rightPalm.transform);
+        }
+
+        public override void EnableTransform(List<MyObject> objects)
+        {
+            controller.ReleaseObjects();
+            controller.PrepareRotate(objects);
+            controller.PrepareScale();
+            controller.GrabObjects(objects);
+        }
+    }
+
+    private void SetMode(ModeEnum state)
+    {
+        this.mode = modes[state];
+    }
+    #endregion
+
+    Dictionary<ModeEnum, Mode> modes;
+    private Mode mode;
+
+    private enum ModeEnum
+    {
+        ObjectMode,
+        EditMode
+    }
+    private enum TransformTypeEnum
+    {
+        Translating,
+        RotoScaling
+    }
+
+
+
     #region Fields
     private GameObject mainCamera;
-
-    //public IState state;
-    //public Dictionary<StateEnum, IState> States;
 
     #region Particles
     public ParticlesController ParticlesController;
@@ -42,7 +250,6 @@ public class Controller : MonoBehaviour
     private List<MyObject> SelectedVertices;
 
     private List<MyObject> ActiveSelectedList;
-    private List<MyObject> ActiveAllList;
 
     private MyObject LastSelectedObject
     {
@@ -70,8 +277,6 @@ public class Controller : MonoBehaviour
     #endregion
 
     #region Transform
-    public TransformingState TransformingState;
-
     [Header("Transform axes")]
     public HoverItemDataCheckbox XAxis;
     public HoverItemDataCheckbox YAxis;
@@ -88,17 +293,17 @@ public class Controller : MonoBehaviour
     public HoverItemDataSelector FillButton;
     public HoverItemDataSelector AddVertexButton;
 
-    private EditingState EditingState;
+    private Modes EditingState;
     private Vector3[] vertices;
     #endregion
 
     #region Aux objects
     [Header("Transform aux objects")]
-    public GameObject transformAuxObject1;
+    public GameObject transformAuxObject1OP;
     private PositionConstraint positionConstraint;
     private RotationConstraint rotationConstraint;
     private ScaleConstraint scaleConstraint;
-    public GameObject transformAuxObject2;
+    public GameObject transformAuxObject2CT;
     public GameObject leftPalm;
     public GameObject rightPalm;
     private bool drawingPath;
@@ -108,6 +313,12 @@ public class Controller : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        this.modes = new Dictionary<ModeEnum, Mode>()
+        {
+            { ModeEnum.ObjectMode, new ObjectMode(this) },
+            { ModeEnum.EditMode, new EditMode(this) }
+        };
+        this.mode = modes[ModeEnum.ObjectMode];
 
         mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
 
@@ -115,9 +326,9 @@ public class Controller : MonoBehaviour
         YAxis.OnValueChanged += YAxis_OnValueChanged;
         ZAxis.OnValueChanged += ZAxis_OnValueChanged;
 
-        positionConstraint = transformAuxObject1.GetComponent<PositionConstraint>();
-        rotationConstraint = transformAuxObject1.GetComponent<RotationConstraint>();
-        scaleConstraint = transformAuxObject1.GetComponent<ScaleConstraint>();
+        positionConstraint = transformAuxObject1OP.GetComponent<PositionConstraint>();
+        rotationConstraint = transformAuxObject1OP.GetComponent<RotationConstraint>();
+        scaleConstraint = transformAuxObject1OP.GetComponent<ScaleConstraint>();
 
         InitialiseDetectors();
 
@@ -127,10 +338,6 @@ public class Controller : MonoBehaviour
         SelectedVertices = new List<MyObject>();
 
         ActiveSelectedList = SelectedObjects;
-        ActiveAllList = AllObjects;
-
-        TransformingState = TransformingState.Translating;
-        EditingState = EditingState.None;
 
         ParticlesController.AddParticlesButton.OnSelected += AddParticlesButton_OnSelected;
 
@@ -138,12 +345,9 @@ public class Controller : MonoBehaviour
         ExtrudeCheckbox.OnValueChanged += ExtrudeCheckbox_OnValueChanged;
         AddVertexButton.OnSelected += AddVertexButton_OnSelected;
         FillButton.OnSelected += FillButton_OnSelected;
-
-
     }
 
-
-
+    #region Detectors initialisation
     private void InitialiseDetectors()
     {
         detectorGrabLeft = this.GetComponents<ExtendedFingerDetector>()[0];
@@ -163,86 +367,46 @@ public class Controller : MonoBehaviour
         detectorPinchRight.OnDeactivate.AddListener(DetectorPinchRight_OnDeactivate);
     }
 
-    Action DetectorGrabLeft_OnActivateDelegate;
-    Action DetectorGrabLeft_OnDeactivateDelegate;
-    Action DetectorGrabRight_OnActivateDelegate;
-    Action DetectorGrabRight_OnDeactivateDelegate;
-    Action DetectorPinchLeft_OnActivateDelegate;
-    Action DetectorPinchLeft_OnDeactivateDelegate;
-    Action DetectorPinchRight_OnActivateDelegate;
-    Action DetectorPinchRight_OnDeactivateDelegate;
-
-    void DetectorGrabLeft_OnActivate()
+    private void DetectorGrabLeft_OnActivate()
     {
-        ActivateRotoScale();
+        mode.GrabLeft_OnActivate();
     }
-    void DetectorGrabLeft_OnDeactivate()
+    private void DetectorGrabLeft_OnDeactivate()
     {
-        DeactivateRotoScale();
+        mode.GrabLeft_OnDeactivate();
     }
-    void DetectorGrabRight_OnActivate()
+    private void DetectorGrabRight_OnActivate()
     {
-        EnableTransformAll();
+        mode.GrabRight_OnActivate();
     }
-    void DetectorGrabRight_OnDeactivate()
+    private void DetectorGrabRight_OnDeactivate()
     {
-        DisableTransform();
+        mode.GrabRight_OnDeactivate();
     }
-    void DetectorPinchLeft_OnActivate()
+    private void DetectorPinchLeft_OnActivate()
     {
-
+        mode.PinchLeft_OnActivate();
     }
-    void DetectorPinchLeft_OnDeactivate()
+    private void DetectorPinchLeft_OnDeactivate()
     {
-
+        mode.PinchLeft_OnDeactivate();
     }
-    void DetectorPinchRight_OnActivate()
+    private void DetectorPinchRight_OnActivate()
     {
-        EnableTransformSelected();
+        mode.PinchRight_OnActivate();
     }
-    void DetectorPinchRight_OnDeactivate()
+    private void DetectorPinchRight_OnDeactivate()
     {
-        DisableTransform();
+        mode.PinchRight_OnDeactivate();
     }
-
+    #endregion
 
     // Update is called once per frame
     void Update()
     {
-        if (this.TransformingState == TransformingState.Translating)
-        {
-            Translate();
-        }
-        else if (this.TransformingState == TransformingState.RotoScale)
-        {
-            Rotate();
-            Scale();
-        }
-        if (EditingState == EditingState.Vertices)
-        {
-            if (AllVertices.Count != 0)
-            {
-                try
-                {
-                    for (int i = 0; i < AllVertices.Count; i++)
-                    {
-                        AllVertices[i].transform.parent = null;
-                        vertices[i] = LastSelectedObject.transform.InverseTransformPoint(AllVertices[i].transform.position);
-                    }
-                    foreach (var item in ActiveSelectedList)
-                    {
-                        item.transform.parent = transformAuxObject1.transform;
-                    }
-                    LastSelectedObject.Mesh.vertices = vertices;
+        mode.Update();
 
-                }
-                catch (Exception e)
-                {
-                    //handles[i] might be deleted midframe, this is expected so continue
-                    Debug.Log(e.Message);
-                }
-            }
-        }
+
         if (drawingPath)
         {
             if (LineRenderer.positionCount == 0 || Vector3.Distance(rightPalm.transform.position, LineRenderer.GetPosition(LineRenderer.positionCount - 1)) > 0.05)
@@ -254,40 +418,14 @@ public class Controller : MonoBehaviour
         }
     }
 
-    #region Transforming
-    private void ActivateRotoScale()
-    {
-        TransformingState = TransformingState.RotoScale;
-    }
-    private void DeactivateRotoScale()
-    {
-        TransformingState = TransformingState.Translating;
-    }
-    private void Translate()
-    {
-        //no need to do anything, unity parenting/constraints take care of things.
-    }
-    private void Rotate()
-    {
-        transformAuxObject2.transform.LookAt(rightPalm.transform);
-    }
-    private void Scale()
-    {
-        float distance = Vector3.Distance(this.transformAuxObject2.transform.position, rightPalm.transform.position);
-        float newScale = initialScale + distance - initialDistance;
-
-        transformAuxObject2.transform.localScale = new Vector3(newScale, newScale, newScale);
-    }
-    #endregion
-
     #region Particles
     private void AddParticlesButton_OnSelected(IItemDataSelectable pItem)
     {
-        detectorPinchRight.OnActivate.RemoveListener(EnableTransformSelected);
-        detectorPinchRight.OnDeactivate.RemoveListener(DisableTransform);
+        detectorPinchRight.OnActivate.RemoveListener(DetectorPinchRight_OnActivate);
+        detectorPinchRight.OnDeactivate.RemoveListener(DetectorPinchRight_OnDeactivate);
 
-        detectorGrabRight.OnActivate.RemoveListener(EnableTransformAll);
-        detectorGrabRight.OnDeactivate.RemoveListener(DisableTransform);
+        detectorGrabRight.OnActivate.RemoveListener(DetectorGrabRight_OnActivate);
+        detectorGrabRight.OnDeactivate.RemoveListener(DetectorGrabRight_OnDeactivate);
 
         detectorGrabRight.OnActivate.AddListener(StartDrawingPath);
         detectorGrabRight.OnDeactivate.AddListener(StopDrawingPath);
@@ -303,11 +441,11 @@ public class Controller : MonoBehaviour
 
         ParticlesController.StopDrawingPath(LineRenderer);
 
-        detectorPinchRight.OnActivate.AddListener(EnableTransformSelected);
-        detectorPinchRight.OnDeactivate.AddListener(DisableTransform);
+        detectorPinchRight.OnActivate.AddListener(DetectorPinchRight_OnActivate);
+        detectorPinchRight.OnDeactivate.AddListener(DetectorPinchRight_OnDeactivate);
 
-        detectorGrabRight.OnActivate.AddListener(EnableTransformAll);
-        detectorGrabRight.OnDeactivate.AddListener(DisableTransform);
+        detectorGrabRight.OnActivate.AddListener(DetectorGrabRight_OnActivate);
+        detectorGrabRight.OnDeactivate.AddListener(DetectorGrabRight_OnDeactivate);
 
         detectorGrabRight.OnActivate.RemoveListener(StartDrawingPath);
         detectorGrabRight.OnDeactivate.RemoveListener(StopDrawingPath);
@@ -342,78 +480,65 @@ public class Controller : MonoBehaviour
     #endregion
 
     #region Grabbing
-    private void EnableTransformAll()
-    {
-        EnableTransform(ActiveAllList);
-    }
+
+
     private void EnableTransformSelected()
     {
-        EnableTransform(ActiveSelectedList);
-    }
-    public void EnableTransform(List<MyObject> objects)
-    {
-        ReleaseObjects();
-
-        switch (TransformingState)
-        {
-            case TransformingState.Translating:
-                PrepareTranslate();
-                break;
-            case TransformingState.RotoScale:
-                PrepareRotate();
-                PrepareScale();
-                break;
-            default:
-                break;
-        }
-
-        GrabObjects(objects);
+        mode.EnableTransform(ActiveSelectedList);
     }
     #region Used in EnableTransform
     private void ReleaseObjects()
     {
-        transformAuxObject1.transform.DetachChildren();
+        transformAuxObject1OP.transform.DetachChildren();
     }
     private void PrepareTranslate()
     {
+        transformAuxObject1OP.transform.position = rightPalm.transform.position;
+        transformAuxObject2CT.transform.position = rightPalm.transform.position;
+
+        transformAuxObject2CT.transform.parent = rightPalm.transform;
         positionConstraint.constraintActive = true;
-        transformAuxObject2.transform.parent = rightPalm.transform;
     }
-    private void PrepareRotate()
+    private void PrepareRotate(List<MyObject> objects)
     {
-        transformAuxObject2.transform.LookAt(rightPalm.transform);
-        transformAuxObject1.transform.LookAt(rightPalm.transform);
+        transformAuxObject1OP.transform.position = GetMedianPoint(objects);
+        transformAuxObject2CT.transform.position = transformAuxObject1OP.transform.position;
+
+        transformAuxObject2CT.transform.LookAt(rightPalm.transform);
+        transformAuxObject1OP.transform.LookAt(rightPalm.transform);
+
         rotationConstraint.constraintActive = true;
     }
     private void PrepareScale()
     {
-        transformAuxObject2.transform.localScale = transformAuxObject1.transform.localScale;
-        scaleConstraint.constraintActive = true;
+        transformAuxObject2CT.transform.localScale = transformAuxObject1OP.transform.localScale;
 
-        initialScale = transformAuxObject2.transform.localScale.x;
-        initialDistance = Vector3.Distance(transformAuxObject2.transform.position, rightPalm.transform.position);
+        initialScale = transformAuxObject2CT.transform.localScale.x;
+        initialDistance = Vector3.Distance(transformAuxObject2CT.transform.position, rightPalm.transform.position);
+
+        scaleConstraint.constraintActive = true;
     }
     private void GrabObjects(List<MyObject> objects)
     {
         if (objects.Count != 0)
         {
-            transformAuxObject1.transform.position = GetMedianPoint(objects);
-            transformAuxObject2.transform.position = transformAuxObject1.transform.position;
-
             foreach (var item in objects)
             {
-                item.transform.parent = transformAuxObject1.transform;
+                item.transform.parent = transformAuxObject1OP.transform;
             }
         }
     }
-    private static Vector3 GetMedianPoint(List<MyObject> objectList)
+    private static Vector3 GetMedianPoint(List<MyObject> objects)
     {
         Vector3 sum = Vector3.zero;
-        foreach (MyObject item in objectList)
+        if (objects.Any())
         {
-            sum += item.transform.position;
+            foreach (MyObject item in objects)
+            {
+                sum += item.transform.position;
+            }
+            sum /= objects.Count;
         }
-        sum /= objectList.Count;
         return sum;
     }
     private static Vector3 GetMedianPoint(Vector3[] points)
@@ -427,22 +552,7 @@ public class Controller : MonoBehaviour
         return sum;
     }
     #endregion
-    public void DisableTransform()
-    {
-        switch (TransformingState)
-        {
-            case TransformingState.Translating:
-                positionConstraint.constraintActive = false;
-                break;
-            case TransformingState.RotoScale:
-                rotationConstraint.constraintActive = false;
-                scaleConstraint.constraintActive = false;
-                break;
-            default:
-                break;
-        }
-        transformAuxObject2.transform.parent = null;
-    }
+
     #endregion
 
     #region Edit mode
@@ -477,8 +587,7 @@ public class Controller : MonoBehaviour
                 item.Color = ObjectColors[ObjectStates.Inactive];
             }
             ActiveSelectedList = SelectedVertices;
-            ActiveAllList = AllVertices;
-            this.EditingState = EditingState.Vertices;
+            this.SetMode(ModeEnum.EditMode);
         }
     }
     public void DisableEditing()
@@ -491,8 +600,7 @@ public class Controller : MonoBehaviour
         }
         SelectedVertices.Clear();
         ActiveSelectedList = SelectedObjects;
-        ActiveAllList = AllObjects;
-        this.EditingState = EditingState.None;
+        this.SetMode(ModeEnum.ObjectMode);
     }
 
     private void ExtrudeCheckbox_OnValueChanged(IItemDataSelectable<bool> pItem)
@@ -640,29 +748,14 @@ public class Controller : MonoBehaviour
     #endregion
 
     #region Select objects
-    public void SelectOrDeselect(MyObject myObject)
+    public void SelectOrDeselect(MyObject obj)
     {
-        if (EditingState == EditingState.Vertices)
-        {
-            if (AllObjects.Contains(myObject))
-            {
-                return;
-            }
-        }
-
-        if (myObject.IsSelected)
-        {
-            Deselect(myObject);
-        }
-        else
-        {
-            Select(myObject);
-        }
+        mode.SelectOrDeselect(obj);
     }
     #region used in SelectOrDeselect
-    private void Select(params MyObject[] myObjects)
+    private void Select(params MyObject[] objects)
     {
-        foreach (var myObject in myObjects)
+        foreach (var myObject in objects)
         {
             if (!ActiveSelectedList.Contains(myObject))
             {
@@ -677,13 +770,13 @@ public class Controller : MonoBehaviour
             }
         }
     }
-    private void Deselect(MyObject myObject)
+    private void Deselect(MyObject objects)
     {
-        if (ActiveSelectedList.Contains(myObject))
+        if (ActiveSelectedList.Contains(objects))
         {
-            ActiveSelectedList.Remove(myObject);
-            myObject.IsSelected = false;
-            myObject.Color = ObjectColors[ObjectStates.Deselected];
+            ActiveSelectedList.Remove(objects);
+            objects.IsSelected = false;
+            objects.Color = ObjectColors[ObjectStates.Deselected];
             if (LastSelectedObject != null)
             {
                 LastSelectedObject.Color = ObjectColors[ObjectStates.Active];
@@ -768,17 +861,12 @@ public enum SelectingState
     Deselecting
 }
 
-public enum TransformingState
-{
-    None,
-    Translating,
-    RotoScale
-}
 
-public enum EditingState
+
+public enum Modes
 {
-    None,
-    Vertices
+    ObjectMode,
+    EditMode
 }
 
 public enum ObjectStates
